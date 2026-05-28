@@ -65,11 +65,12 @@ export async function signupWithChild(formData: FormData) {
 
   // 2. Create child profile (profile row created via DB trigger)
   if (childName && childDob) {
-    await supabase.from('children').insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('children') as any).insert({
       user_id: authData.user.id,
       name: childName,
       date_of_birth: childDob,
-      gender: childGender as 'male' | 'female' | 'other' || null,
+      gender: childGender || null,
     })
   }
 
