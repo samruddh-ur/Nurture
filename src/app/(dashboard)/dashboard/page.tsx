@@ -9,7 +9,7 @@ import {
   AlertCircle, CheckCircle2, Baby, Heart, Plus, User
 } from "lucide-react";
 import Link from "next/link";
-import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
+import { WeightChart } from "@/components/dashboard/weight-chart";
 
 function getAgeString(dob: string): string {
   const birth = new Date(dob);
@@ -200,12 +200,7 @@ export default async function DashboardPage() {
                 </div>
               </div>
               <div className="h-36">
-                <ResponsiveContainer width="100%" height={144}>
-                  <LineChart data={weightChartData}>
-                    <Tooltip contentStyle={{ background: "white", border: "1px solid #e8e8e0", borderRadius: "12px", fontSize: "12px" }} formatter={(v) => [`${v} kg`, "Weight"]} />
-                    <Line type="monotone" dataKey="v" stroke="#7c6af7" strokeWidth={2.5} dot={{ fill: "#7c6af7", r: 4 }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <WeightChart data={weightChartData} />
               </div>
             </>
           ) : (

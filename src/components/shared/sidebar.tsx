@@ -3,14 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, Utensils, HeartPulse, Syringe,
-  TrendingUp, FolderLock, Home, Settings, Bell, LogOut,
+  LayoutDashboard, Utensils,
+  Syringe, TrendingUp, FolderLock, Home, Settings, LogOut,
   ChevronDown, Sparkles, Baby, X, Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { logout } from "@/app/actions/auth";
+
+function getAgeString(dob: string): string {
+  const birth = new Date(dob);
+  const now = new Date();
+  const months =
+    (now.getFullYear() - birth.getFullYear()) * 12 +
+    (now.getMonth() - birth.getMonth());
+  if (months < 24) return `${months} month${months !== 1 ? "s" : ""}`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years !== 1 ? "s" : ""}`;
+}
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -34,6 +47,33 @@ interface SidebarProps {
 
 export function Sidebar({ mobile, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [profile, setProfile] = useState<{ full_name: string | null; plan: string } | null>(null);
+  const [child, setChild] = useState<{ name: string; date_of_birth: string } | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [{ data: p }, { data: kids }] = await Promise.all([
+        supabase.from("profiles").select("full_name, plan").eq("id", user.id).single(),
+        supabase
+          .from("children")
+          .select("name, date_of_birth")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1),
+      ]);
+      setProfile(p as { full_name: string | null; plan: string } | null);
+      setChild((kids as { name: string; date_of_birth: string }[] | null)?.[0] ?? null);
+    }
+    load();
+  }, []);
+
+  const fullName = profile?.full_name ?? "Loading…";
+  const plan = profile?.plan ?? "free";
+  const childName = child?.name ?? "Add a child";
+  const childAge = child ? getAgeString(child.date_of_birth) : null;
 
   return (
     <aside
@@ -59,21 +99,26 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
 
       {/* Child selector */}
       <div className="px-4 pt-4 pb-2">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#f5f5f0] hover:bg-[#ede9fe] transition-colors group">
-          <Avatar name="Aria" size="sm" />
-          <div className="flex-1 text-left">
-            <p className="text-sm font-semibold text-[#1a1a2e]">Aria Johnson</p>
-            <p className="text-xs text-[#737373]">14 months</p>
+        <Link
+          href="/children"
+          onClick={onClose}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#f5f5f0] hover:bg-[#ede9fe] transition-colors group"
+        >
+          <Avatar name={childName} size="sm" />
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-sm font-semibold text-[#1a1a2e] truncate">{childName}</p>
+            {childAge && <p className="text-xs text-[#737373]">{childAge}</p>}
           </div>
-          <ChevronDown className="w-4 h-4 text-[#a0a0b8] group-hover:text-[#7c6af7] transition-colors" />
-        </button>
+          <ChevronDown className="w-4 h-4 text-[#a0a0b8] group-hover:text-[#7c6af7] transition-colors flex-shrink-0" />
+        </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 overflow-y-auto">
         <div className="space-y-0.5">
           {navigation.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            const active =
+              pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.name}
@@ -86,7 +131,12 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
                     : "text-[#737373] hover:bg-[#f5f5f0] hover:text-[#1a1a2e]"
                 )}
               >
-                <item.icon className={cn("w-5 h-5 flex-shrink-0", active ? "text-[#7c6af7]" : "text-[#a0a0b8]")} />
+                <item.icon
+                  className={cn(
+                    "w-5 h-5 flex-shrink-0",
+                    active ? "text-[#7c6af7]" : "text-[#a0a0b8]"
+                  )}
+                />
                 <span className="flex-1">{item.name}</span>
                 {item.badge && (
                   <Badge variant="purple" className="text-[10px] px-1.5 py-0">
@@ -110,7 +160,9 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
               onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                active ? "bg-[#ede9fe] text-[#7c6af7]" : "text-[#737373] hover:bg-[#f5f5f0] hover:text-[#1a1a2e]"
+                active
+                  ? "bg-[#ede9fe] text-[#7c6af7]"
+                  : "text-[#737373] hover:bg-[#f5f5f0] hover:text-[#1a1a2e]"
               )}
             >
               <item.icon className="w-5 h-5 text-[#a0a0b8]" />
@@ -121,14 +173,20 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
 
         {/* User */}
         <div className="flex items-center gap-3 px-3 py-2.5 mt-1">
-          <Avatar name="Sarah Johnson" size="sm" />
+          <Avatar name={fullName} size="sm" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-[#1a1a2e] truncate">Sarah Johnson</p>
-            <p className="text-xs text-[#a0a0b8]">Premium</p>
+            <p className="text-sm font-semibold text-[#1a1a2e] truncate">{fullName}</p>
+            <p className="text-xs text-[#a0a0b8] capitalize">{plan}</p>
           </div>
-          <button className="p-1.5 rounded-lg hover:bg-[#f5f5f0] text-[#a0a0b8] hover:text-[#737373]">
-            <LogOut className="w-4 h-4" />
-          </button>
+          <form action={logout}>
+            <button
+              type="submit"
+              className="p-1.5 rounded-lg hover:bg-[#f5f5f0] text-[#a0a0b8] hover:text-[#737373]"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </form>
         </div>
       </div>
     </aside>

@@ -6,9 +6,9 @@ import { Topbar } from "@/components/shared/topbar";
 import { usePathname } from "next/navigation";
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
-  "/dashboard": { title: "Good morning, Sarah 👋", subtitle: "Here's what's happening with Aria today" },
+  "/dashboard": { title: "Dashboard", subtitle: "" },
   "/children": { title: "Children", subtitle: "Manage child profiles" },
-  "/nutrition": { title: "Nutrition Assistant", subtitle: "AI-powered meal planning for Aria" },
+  "/nutrition": { title: "Nutrition", subtitle: "AI-powered meal planning" },
   "/health": { title: "BabyGPT", subtitle: "Your AI parenting companion" },
   "/vaccinations": { title: "Vaccinations", subtitle: "Immunization schedule and history" },
   "/growth": { title: "Growth & Development", subtitle: "Track milestones and growth trends" },
